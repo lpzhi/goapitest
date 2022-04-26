@@ -1,34 +1,31 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"goapitest/bootstrap"
-	"net/http"
-	"strings"
+
+	bstconfig "goapitest/config"
+	config "goapitest/pkg/config"
 
 	"github.com/gin-gonic/gin"
 )
 
+func init() {
+	bstconfig.Initialize()
+}
+
 func main() {
+
+	var env string
+	flag.StringVar(&env, "env", "", "加载 .env 文件，如 --env=testing 加载的是 .env.testing 文件")
+	flag.Parse()
+	config.InitConfig(env)
 
 	r := gin.New()
 	bootstrap.SetupRoute(r)
-	r.Use(gin.Logger(), gin.Recovery())
 
-	r.NoRoute(func(ctx *gin.Context) {
-		acceptString := ctx.Request.Header.Get("Accept")
-
-		if strings.Contains(acceptString, "text/html") {
-			ctx.String(http.StatusNotFound, "页面 404")
-		} else {
-			ctx.JSON(http.StatusNotFound, gin.H{
-				"error_code":    404,
-				"errer_message": "路由未定义",
-			})
-		}
-	})
-
-	err := r.Run()
+	err := r.Run(":" + config.GetString("app.port"))
 	if err != nil {
 		fmt.Println(err.Error())
 	}
